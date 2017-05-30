@@ -12,7 +12,7 @@
 #include "OFFeatureMatcher.h"
 #include <opencv2/video/video.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/gpu/gpu.hpp>
+//#include <opencv2/gpu/gpu.hpp>
 #include <opencv2/flann/flann.hpp>
 
 #ifdef __SFM__DEBUG__

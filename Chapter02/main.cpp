@@ -18,7 +18,7 @@
 
 using namespace std;
 
-#include <opencv2/gpu/gpu.hpp>
+//#include <opencv2/gpu/gpu.hpp>
 
 class VisualizerListener : public SfMUpdateListener {
 public:

@@ -7,16 +7,16 @@
  */
 
 #include "IFeatureMatcher.h"
-#include <opencv2/gpu/gpu.hpp>
+//#include <opencv2/gpu/gpu.hpp>
 
 class GPUSURFFeatureMatcher : public IFeatureMatcher {
 private:
-	cv::Ptr<cv::gpu::SURF_GPU> extractor;
+	cv::Ptr<cv::cuda::SURF_CUDA> extractor;
 	
-	std::vector<cv::gpu::GpuMat> descriptors;
+	std::vector<cv::cuda::GpuMat> descriptors;
 	
-	std::vector<cv::gpu::GpuMat> imgs; 
-	std::vector<cv::gpu::GpuMat> imggpupts;
+	std::vector<cv::cuda::GpuMat> imgs; 
+	std::vector<cv::cuda::GpuMat> imggpupts;
 	std::vector<std::vector<cv::KeyPoint> >& imgpts;
 
 	bool use_ratio_test;
