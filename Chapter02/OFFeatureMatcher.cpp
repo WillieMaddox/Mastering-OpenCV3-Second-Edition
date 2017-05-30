@@ -10,13 +10,12 @@
 *****************************************************************************/
 
 #include "OFFeatureMatcher.h"
-#include <opencv2/video/video.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/gpu/gpu.hpp>
-#include <opencv2/flann/flann.hpp>
-
+#include <opencv2/cudaoptflow.hpp>
+#include <opencv2/video.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/flann.hpp>
 #ifdef __SFM__DEBUG__
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui.hpp>
 #include <omp.h>
 #include <sstream>
 #endif
@@ -25,31 +24,29 @@
 
 using namespace std;
 using namespace cv;
-
+//using namespace cv::cuda;
 //c'tor
-OFFeatureMatcher::OFFeatureMatcher(
-	bool _use_gpu,
-	std::vector<cv::Mat>& imgs_, 
-	std::vector<std::vector<cv::KeyPoint> >& imgpts_) :
-AbstractFeatureMatcher(_use_gpu),imgpts(imgpts_), imgs(imgs_)
+OFFeatureMatcher::OFFeatureMatcher(bool _use_gpu, vector<Mat>& imgs_, vector<vector<KeyPoint>>& imgpts_) :
+AbstractFeatureMatcher(_use_gpu), imgpts(imgpts_), imgs(imgs_)
 {
 	//detect keypoints for all images
-	FastFeatureDetector ffd;
+//	FastFeatureDetector ffd;
+	Ptr<FeatureDetector> ffd = FastFeatureDetector::create();
 //	DenseFeatureDetector ffd;
-	ffd.detect(imgs, imgpts);
+	ffd->detect(imgs, imgpts);
 }
 
 void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* matches) {	
 	vector<Point2f> i_pts; 
-	KeyPointsToPoints(imgpts[idx_i],i_pts);
+	KeyPointsToPoints(imgpts[idx_i], i_pts);
 	
 	vector<Point2f> j_pts(i_pts.size());
 	
 	// making sure images are grayscale
-	Mat prevgray,gray;
+	Mat prevgray, gray;
 	if (imgs[idx_i].channels() == 3) {
-		cvtColor(imgs[idx_i],prevgray,CV_RGB2GRAY);
-		cvtColor(imgs[idx_j],gray,CV_RGB2GRAY);
+		cvtColor(imgs[idx_i], prevgray, CV_RGB2GRAY);
+		cvtColor(imgs[idx_j], gray, CV_RGB2GRAY);
 	} else {
 		prevgray = imgs[idx_i];
 		gray = imgs[idx_j];
@@ -58,25 +55,26 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 	vector<uchar> vstatus(i_pts.size()); vector<float> verror(i_pts.size());
 
 	if(use_gpu) {
-		gpu::GpuMat gpu_prevImg,gpu_nextImg,gpu_prevPts,gpu_nextPts,gpu_status,gpu_error;
+		cuda::GpuMat gpu_prevImg, gpu_nextImg, gpu_prevPts, gpu_nextPts, gpu_status, gpu_error;
 		gpu_prevImg.upload(prevgray);
 		gpu_nextImg.upload(gray);
 		gpu_prevPts.upload(Mat(i_pts).t());
 
-		gpu::PyrLKOpticalFlow gpu_of;
-		gpu_of.sparse(gpu_prevImg,gpu_nextImg,gpu_prevPts,gpu_nextPts,gpu_status,&gpu_error);
+		Ptr<cuda::SparsePyrLKOpticalFlow> d_pyrLK = cuda::SparsePyrLKOpticalFlow::create();
+		d_pyrLK->calc(gpu_prevImg, gpu_nextImg, gpu_prevPts, gpu_nextPts, gpu_status, gpu_error);
 
-		Mat j_pts_mat;
-		gpu_nextPts.download(j_pts_mat);
-		Mat(j_pts_mat.t()).copyTo(Mat(j_pts));
+//		cuda::PyrLKOpticalFlow gpu_of;
+//		gpu_of.sparse(gpu_prevImg, gpu_nextImg, gpu_prevPts, gpu_nextPts, gpu_status, &gpu_error);
 
-		Mat vstatus_mat,verror_mat;
+		Mat j_pts_mat, vstatus_mat, verror_mat;
 		gpu_status.download(vstatus_mat);
 		gpu_error.download(verror_mat);
+		gpu_nextPts.download(j_pts_mat);
 		Mat(vstatus_mat.t()).copyTo(Mat(vstatus));
 		Mat(verror_mat.t()).copyTo(Mat(verror));
+		Mat(j_pts_mat.t()).copyTo(Mat(j_pts));
 	} else {
-		CV_PROFILE("OpticalFlow",calcOpticalFlowPyrLK(prevgray, gray, i_pts, j_pts, vstatus, verror);)
+		CV_PROFILE("OpticalFlow", calcOpticalFlowPyrLK(prevgray, gray, i_pts, j_pts, vstatus, verror);)
 	}
 
 	double thresh = 1.0;
@@ -91,24 +89,24 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 		}
 	}
 
-	std::set<int> found_in_imgpts_j;
-	Mat to_find_flat = Mat(to_find).reshape(1,to_find.size());
+	set<int> found_in_imgpts_j;
+	Mat to_find_flat = Mat(to_find).reshape(1, to_find.size());
 	
 	vector<Point2f> j_pts_to_find;
-	KeyPointsToPoints(imgpts[idx_j],j_pts_to_find);
-	Mat j_pts_flat = Mat(j_pts_to_find).reshape(1,j_pts_to_find.size());
+	KeyPointsToPoints(imgpts[idx_j], j_pts_to_find);
+	Mat j_pts_flat = Mat(j_pts_to_find).reshape(1, j_pts_to_find.size());
 
-	vector<vector<DMatch> > knn_matches;
+	vector<vector<DMatch>> knn_matches;
 	//FlannBasedMatcher matcher;
 	BFMatcher matcher(CV_L2);
-	CV_PROFILE("RadiusMatch",matcher.radiusMatch(to_find_flat,j_pts_flat,knn_matches,2.0f);)
+	CV_PROFILE("RadiusMatch", matcher.radiusMatch(to_find_flat, j_pts_flat, knn_matches, 2.0f);)
 	CV_PROFILE("Prune",
-	for(int i=0;i<knn_matches.size();i++) {
+	for (int i=0; i<knn_matches.size(); i++) {
 		DMatch _m;
-		if(knn_matches[i].size()==1) {
+		if (knn_matches[i].size()==1) {
 			_m = knn_matches[i][0];
-		} else if(knn_matches[i].size()>1) {
-			if(knn_matches[i][0].distance / knn_matches[i][1].distance < 0.7) {
+		} else if (knn_matches[i].size()>1) {
+			if (knn_matches[i][0].distance / knn_matches[i][1].distance < 0.7) {
 				_m = knn_matches[i][0];
 			} else {
 				continue; // did not pass ratio test
@@ -128,9 +126,9 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 #ifdef __SFM__DEBUG__
 	{
 		// draw flow field
-		Mat img_matches; cvtColor(imgs[idx_i],img_matches,CV_GRAY2BGR);
+		Mat img_matches; cvtColor(imgs[idx_i], img_matches, CV_GRAY2BGR);
 		i_pts.clear(); j_pts.clear();
-		for(int i=0;i<matches->size();i++) {
+		for(int i=0; i<matches->size(); i++) {
 			//if (i%2 != 0) {
 //				continue;
 //			}
@@ -140,7 +138,7 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 			j_pts.push_back(j_pt);
 			vstatus[i] = 1;
 		}
-		drawArrows(img_matches, i_pts, j_pts, vstatus, verror, Scalar(0,255));
+		drawArrows(img_matches, i_pts, j_pts, vstatus, verror, Scalar(0, 255));
 		stringstream ss; 
 		ss << matches->size() << " matches";
 //		putText(img_matches,ss.str(),Point(10,20),CV_FONT_HERSHEY_PLAIN,1.0,Scalar(255),2);

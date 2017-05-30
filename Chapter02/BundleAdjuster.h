@@ -10,6 +10,7 @@
 *****************************************************************************/
 
 #include <vector>
+#include <map>
 #include <opencv2/core/core.hpp>
 #include "Common.h"
 
