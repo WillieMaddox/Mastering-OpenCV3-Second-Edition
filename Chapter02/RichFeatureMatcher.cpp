@@ -12,11 +12,11 @@
 #include "RichFeatureMatcher.h"
 
 #include "FindCameraMatrices.h"
-#include <opencv2/features2d/features2d.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/video/tracking.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include <iostream>
 #include <set>
@@ -25,17 +25,21 @@ using namespace std;
 using namespace cv;
 
 //c'tor
-RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, 
-									   std::vector<std::vector<cv::KeyPoint> >& imgpts_) :
+RichFeatureMatcher::RichFeatureMatcher(vector<Mat>& imgs_,
+									   vector<vector<KeyPoint> >& imgpts_) :
 	imgpts(imgpts_), imgs(imgs_)
 {
-	detector = FeatureDetector::create("PyramidFAST");
-	extractor = DescriptorExtractor::create("ORB");
+//	detector = FeatureDetector::create("PyramidFAST");
+//	extractor = DescriptorExtractor::create("ORB");
+	Ptr<FeatureDetector> detector = FastFeatureDetector::create();
+//	Ptr<Feature2D> extractor = DescriptorExtractor::create("ORB");
 	
-	std::cout << " -------------------- extract feature points for all images -------------------\n";
+	cout << " -------------------- extract feature points for all images -------------------\n";
 	detector->detect(imgs, imgpts);
-	extractor->compute(imgs, imgpts, descriptors);
-	std::cout << " ------------------------------------- done -----------------------------------\n";
+	detector->compute(imgs, imgpts, descriptors);
+//	detector->detectAndCompute(imgs, noArray(), imgpts, descriptors);
+//	extractor->compute(imgs, imgpts, descriptors);
+	cout << " ------------------------------------- done -----------------------------------\n";
 }	
 
 void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* matches) {
@@ -49,8 +53,8 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
     const Mat& descriptors_1 = descriptors[idx_i];
     const Mat& descriptors_2 = descriptors[idx_j];
     
-    std::vector< DMatch > good_matches_,very_good_matches_;
-    std::vector<KeyPoint> keypoints_1, keypoints_2;
+    vector<DMatch> good_matches_, very_good_matches_;
+    vector<KeyPoint> keypoints_1, keypoints_2;
     
 	stringstream ss; ss << "imgpts1 has " << imgpts1.size() << " points (descriptors " << descriptors_1.rows << ")" << endl;
     cout << ss.str();
@@ -68,8 +72,8 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
     }
     
     //matching descriptor vectors using Brute Force matcher
-    BFMatcher matcher(NORM_HAMMING,true); //allow cross-check. use Hamming distance for binary descriptor (ORB)
-    std::vector< DMatch > matches_;
+    BFMatcher matcher(NORM_HAMMING, true); //allow cross-check. use Hamming distance for binary descriptor (ORB)
+    vector<DMatch> matches_;
     if (matches == NULL) {
         matches = &matches_;
     }
@@ -94,7 +98,7 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
 //    printf("-- Min dist : %f \n", min_dist );
 //#endif
     
-    vector<KeyPoint> imgpts1_good,imgpts2_good;
+    vector<KeyPoint> imgpts1_good, imgpts2_good;
     
 //    if (min_dist <= 0) {
 //        min_dist = 10.0;
@@ -102,7 +106,7 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
     
     // Eliminate any re-matching of training points (multiple queries to one training)
 //    double cutoff = 4.0*min_dist;
-    std::set<int> existing_trainIdx;
+    set<int> existing_trainIdx;
     for(unsigned int i = 0; i < matches->size(); i++ )
     { 
         //"normalize" matching: somtimes imgIdx is the one holding the trainIdx

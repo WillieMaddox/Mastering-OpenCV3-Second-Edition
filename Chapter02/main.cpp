@@ -18,8 +18,6 @@
 
 using namespace std;
 
-//#include <opencv2/gpu/gpu.hpp>
-
 class VisualizerListener : public SfMUpdateListener {
 public:
 	void update(std::vector<cv::Point3d> pcld,

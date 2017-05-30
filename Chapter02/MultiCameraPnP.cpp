@@ -14,9 +14,7 @@
 
 using namespace std;
 
-#include <opencv2/cudalegacy.hpp>
-//#include <opencv2/gpu/gpu.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/calib3d.hpp>
 
 bool sort_by_first(pair<int,pair<int,int> > a, pair<int,pair<int,int> > b) { return a.first < b.first; }
 
@@ -218,8 +216,8 @@ bool MultiCameraPnP::FindPoseEstimation(
 		cv::Mat imgPoints_m(imgPoints); imgPoints_m = imgPoints_m.t();
 		cv::Mat rvec_,t_;
 
-		cv::cuda::solvePnPRansac(ppcloud_m,imgPoints_m,K_32f,distcoeff_32f,rvec_,t_,false);
-
+//		cv::cuda::solvePnPRansac(ppcloud_m, imgPoints_m, K_32f, distcoeff_32f, rvec_, t_, false);
+        cv::solvePnPRansac(ppcloud_m, imgPoints_m, K_32f, distcoeff_32f, rvec_, t_, false);
 		rvec_.convertTo(rvec,CV_64FC1);
 		t_.convertTo(t,CV_64FC1);
 	}

@@ -8,8 +8,13 @@ if(EIGEN_INCLUDE_DIRS) # if compiling with PCL, it will bring Eigen with it
 	add_definitions( -DUSE_EIGEN )
 endif()
 
-set(SSBA_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/3rdparty/SSBA-3.0/build" CACHE PATH "Directory to find SSBA libs")
+set(SSBA_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/3rdparty/SSBA-4.0/build" CACHE PATH "Directory to find SSBA libs")
 
+find_package(CUDA REQUIRED)
+#if(HAVE_CUDA)
+#    include_directories(${CUDA_INCLUDE_DIRS})
+#endif()
+include_directories(${CUDA_INCLUDE_DIRS})
 find_package(OpenCV REQUIRED)
 find_package(OpenMP REQUIRED)
 link_directories(
@@ -64,6 +69,10 @@ if(APPLE)
 	set_target_properties(ExploringSfMLibrary PROPERTIES LINK_FLAGS "-fopenmp")
 endif()
 
+target_link_libraries(ExploringSfMLibrary 
+	"${SSBA_LIBRARY_DIR}/libV3D.a" 
+	"${SSBA_LIBRARY_DIR}/libCOLAMD.a"
+	)
 
 # UI part
 add_executable(ExploringSfMExec 

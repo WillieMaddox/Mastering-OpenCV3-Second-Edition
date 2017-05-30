@@ -75,8 +75,8 @@ int BundleAdjuster::Count2DMeasurements(const vector<CloudPoint>& pointcloud) {
 
 void BundleAdjuster::adjustBundle(vector<CloudPoint>& pointcloud, 
 								  Mat& cam_matrix,
-								  const std::vector<std::vector<cv::KeyPoint> >& imgpts,
-								  std::map<int ,cv::Matx34d>& Pmats
+								  const vector<vector<KeyPoint>>& imgpts,
+								  map<int ,Matx34d>& Pmats
 								) 
 {
 	int N = Pmats.size(), M = pointcloud.size(), K = Count2DMeasurements(pointcloud);
