@@ -20,11 +20,11 @@ using namespace std;
 
 class VisualizerListener : public SfMUpdateListener {
 public:
-	void update(std::vector<cv::Point3d> pcld,
-				std::vector<cv::Vec3b> pcldrgb, 
-				std::vector<cv::Point3d> pcld_alternate,
-				std::vector<cv::Vec3b> pcldrgb_alternate, 
-				std::vector<cv::Matx34d> cameras) {
+	void update(vector<cv::Point3d> pcld,
+				vector<cv::Vec3b> pcldrgb,
+				vector<cv::Point3d> pcld_alternate,
+				vector<cv::Vec3b> pcldrgb_alternate,
+				vector<cv::Matx34d> cameras) {
 		ShowClouds(pcld, pcldrgb, pcld_alternate, pcldrgb_alternate);
 		
 		vector<cv::Matx34d> v = cameras;
@@ -39,8 +39,8 @@ public:
 	}
 };
 
-std::vector<cv::Mat> images;
-std::vector<std::string> images_names;
+vector<cv::Mat> images;
+vector<string> images_names;
 
 int main(int argc, char** argv) {
 	if (argc < 2) {
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 		distance->use_rich_features = (strcmp(argv[2], "RICH") == 0);
 	
 	if(argc < 4)
-		distance->use_gpu = (cv::gpu::getCudaEnabledDeviceCount() > 0);
+		distance->use_gpu = (cv::cuda::getCudaEnabledDeviceCount() > 0);
 	else
 		distance->use_gpu = (strcmp(argv[3], "GPU") == 0);
 	

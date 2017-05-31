@@ -37,21 +37,25 @@ GPUSURFFeatureMatcher::GPUSURFFeatureMatcher(vector<Mat>& imgs_,
 //	Ptr<Feature2D> extractor = xfeatures2d::SURF::create();
 //	Ptr<cuda::SURF_CUDA> extractor = cuda::SURF_CUDA::create();
 //	cuda::SURF_CUDA extractor;
-	Ptr<cuda::DescriptorMatcher> extractor = cuda::DescriptorMatcher::createBFMatcher(NORM_L2);
-	
+	extractor = cuda::DescriptorMatcher::createBFMatcher(NORM_L2);
+	matcher = makePtr<BFMatcher>((int)NORM_L2, false);
+
 	cout << " -------------------- extract feature points for all images (GPU) -------------------\n";
 	
+	cout << "imgpts has " << imgpts.size() << " points (descriptors " << descriptors.size() << ")" << endl;
+
 	imgpts.resize(imgs_.size());
 	descriptors.resize(imgs_.size());
 
-	CV_PROFILE("extract",
-	for(int img_i=0; img_i<imgs_.size(); img_i++) {
-		cuda::GpuMat _m; _m.upload(imgs_[img_i]);
-		(*extractor)(_m, cuda::GpuMat(), imgpts[img_i], descriptors[img_i]);
-//		extractor(_m, cuda::GpuMat(), imgpts[img_i], descriptors[img_i]);
-		cout << ".";
-	}
-	)
+	cout << "imgpts has " << imgpts.size() << " points (descriptors " << descriptors.size() << ")" << endl;
+
+	//	CV_PROFILE("extract",
+//	for(int img_i=0; img_i<imgs_.size(); img_i++) {
+//		cuda::GpuMat _m; _m.upload(imgs_[img_i]);
+//		(*extractor)(_m, cuda::GpuMat(), imgpts[img_i], descriptors[img_i]);
+//		cout << ".";
+//	}
+//	)
 }	
 
 void GPUSURFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* matches) {
@@ -65,11 +69,11 @@ void GPUSURFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* 
 	const cuda::GpuMat& descriptors_1 = descriptors[idx_i];
 	const cuda::GpuMat& descriptors_2 = descriptors[idx_j];
 	
-	vector<DMatch> good_matches_, very_good_matches_;
+	vector<DMatch> matches_, good_matches_, very_good_matches_;
 	vector<KeyPoint> keypoints_1, keypoints_2;
 	
-	//cout << "imgpts1 has " << imgpts1.size() << " points (descriptors " << descriptors_1.rows << ")" << endl;
-	//cout << "imgpts2 has " << imgpts2.size() << " points (descriptors " << descriptors_2.rows << ")" << endl;
+	cout << "imgpts1 has " << imgpts1.size() << " points (descriptors " << descriptors_1.rows << ")" << endl;
+	cout << "imgpts2 has " << imgpts2.size() << " points (descriptors " << descriptors_2.rows << ")" << endl;
 	
 	keypoints_1 = imgpts1;
 	keypoints_2 = imgpts2;
@@ -82,8 +86,7 @@ void GPUSURFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* 
 	}
 	
 	//matching descriptor vectors using Brute Force matcher
-	BFMatcher matcher(NORM_L2);
-	vector<DMatch> matches_;
+//	matcher = BFMatcher(NORM_L2);
 	if (matches == NULL) {
 		matches = &matches_;
 	}
@@ -93,10 +96,10 @@ void GPUSURFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* 
 		if (use_ratio_test) {
 			vector<vector<DMatch>> knn_matches;
 			cuda::GpuMat trainIdx, distance, allDist;
-			CV_PROFILE("match", 
-				matcher.knnMatchSingle(descriptors_1, descriptors_2, trainIdx, distance, allDist, 2);
-				matcher.knnMatchDownload(trainIdx, distance, knn_matches);
-			)
+//			CV_PROFILE("match",
+//				matcher.knnMatchSingle(descriptors_1, descriptors_2, trainIdx, distance, allDist, 2);
+//				matcher.knnMatchDownload(trainIdx, distance, knn_matches);
+//			)
 
 			(*matches).clear();
 
@@ -108,7 +111,7 @@ void GPUSURFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* 
 			}
 			cout << "kept " << (*matches).size() << " features after ratio test"<<endl;
 		} else {
-			CV_PROFILE("match", matcher.match( descriptors_1, descriptors_2, *matches );)
+//			CV_PROFILE("match", matcher.match( descriptors_1, descriptors_2, *matches );)
 		}
 	}
 }
