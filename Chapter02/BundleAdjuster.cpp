@@ -75,7 +75,7 @@ int BundleAdjuster::Count2DMeasurements(const vector<CloudPoint>& pointcloud) {
 
 void BundleAdjuster::adjustBundle(vector<CloudPoint>& pointcloud, 
 								  Mat& cam_matrix,
-								  const vector<vector<KeyPoint>>& imgpts,
+								  const vector<vector<KeyPoint> >& imgpts,
 								  map<int ,Matx34d>& Pmats
 								) 
 {

@@ -26,7 +26,7 @@ using namespace std;
 using namespace cv;
 //using namespace cv::cuda;
 //c'tor
-OFFeatureMatcher::OFFeatureMatcher(bool _use_gpu, vector<Mat>& imgs_, vector<vector<KeyPoint>>& imgpts_) :
+OFFeatureMatcher::OFFeatureMatcher(bool _use_gpu, vector<Mat>& imgs_, vector<vector<KeyPoint> >& imgpts_) :
 AbstractFeatureMatcher(_use_gpu), imgpts(imgpts_), imgs(imgs_)
 {
 	//detect keypoints for all images
@@ -96,7 +96,7 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 	KeyPointsToPoints(imgpts[idx_j], j_pts_to_find);
 	Mat j_pts_flat = Mat(j_pts_to_find).reshape(1, j_pts_to_find.size());
 
-	vector<vector<DMatch>> knn_matches;
+	vector<vector<DMatch> > knn_matches;
 	//FlannBasedMatcher matcher;
 	BFMatcher matcher(CV_L2);
 	CV_PROFILE("RadiusMatch", matcher.radiusMatch(to_find_flat, j_pts_flat, knn_matches, 2.0f);)
